@@ -5,49 +5,65 @@ void main() => runApp(BytebankApp());
 class BytebankApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
-      home: FormularioTransferencia(),
-      // home: ListaTransferencias(),
+      home: ListaTransferencias(),
+      theme: ThemeData(
+        primaryColor: Colors.green[900],
+        accentColor: Colors.blue[700],
+        buttonTheme: ButtonThemeData(
+          buttonColor: Colors.blue[700],
+          textTheme: ButtonTextTheme.primary,
+        ),
+      ),
     );
   }
 }
 
-class FormularioTransferencia extends StatelessWidget {
-  final TextEditingController _controllerNumeroConta = TextEditingController();
-  final TextEditingController _controllerValor = TextEditingController();
-
+class _FormularioTransferencia extends State<FormularioTransferencia> {
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Column(
-        children: [
-          Editor(
-            controller: _controllerNumeroConta,
-            label: 'Número da Conta',
-            hint: '0000',
-          ),
-          Editor(
-            controller: _controllerValor,
-            label: 'Valor',
-            hint: '0.00',
-            icon: Icons.monetization_on,
-          ),
-          RaisedButton(
-            onPressed: () {
-              final int numeroConta = int.tryParse(_controllerNumeroConta.text);
-              final double valor = double.tryParse(_controllerValor.text);
-
-              if (numeroConta != null && valor != null) {
-                final transferencia = Transferencia(valor, numeroConta);
-                print(transferencia);
-              }
-            },
-            child: Text('Confirmar'),
-          ),
-        ],
+      body: SingleChildScrollView(
+        child: Column(
+          children: [
+            Editor(
+              controller: widget._controllerNumeroConta,
+              label: 'Número da Conta',
+              hint: '0000',
+            ),
+            Editor(
+              controller: widget._controllerValor,
+              label: 'Valor',
+              hint: '0.00',
+              icon: Icons.monetization_on,
+            ),
+            RaisedButton(
+              onPressed: () => widget._doTransfer(context),
+              child: Text('Confirmar'),
+            ),
+          ],
+        ),
       ),
       appBar: AppBar(
         title: const Text("Criando transferência"),
       ),
     );
+  }
+}
+
+class FormularioTransferencia extends StatefulWidget {
+  final TextEditingController _controllerNumeroConta = TextEditingController();
+  final TextEditingController _controllerValor = TextEditingController();
+
+  _FormularioTransferencia createState() => _FormularioTransferencia();
+
+  void _doTransfer(BuildContext context) {
+    final int numeroConta = int.tryParse(_controllerNumeroConta.text);
+    final double valor = double.tryParse(_controllerValor.text);
+
+    if (numeroConta != null && valor != null) {
+      final transferencia = Transferencia(valor, numeroConta);
+      Navigator.pop(context, transferencia);
+    }
   }
 }
 
@@ -78,24 +94,43 @@ class Editor extends StatelessWidget {
   }
 }
 
-class ListaTransferencias extends StatelessWidget {
+class ListaTransferencias extends StatefulWidget {
+  final List<Transferencia> _transfers = List();
+
+  State<StatefulWidget> createState() {
+    return ListaTransferenciasState();
+  }
+}
+
+class ListaTransferenciasState extends State<ListaTransferencias> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Column(
-        children: [
-          ItemTransferencia(Transferencia(100.0, 0895)),
-          ItemTransferencia(Transferencia(99.99, 1812)),
-          ItemTransferencia(Transferencia(6565.55, 1812)),
-          ItemTransferencia(Transferencia(4646.68, 0895)),
-        ],
+      body: ListView.builder(
+        itemCount: widget._transfers.length,
+        itemBuilder: (context, index) {
+          return ItemTransferencia(widget._transfers[index]);
+        },
       ),
       appBar: AppBar(
         title: const Text('Transferências'),
       ),
       floatingActionButton: FloatingActionButton(
         child: Icon(Icons.add),
-        onPressed: () {},
+        onPressed: () {
+          final Future<Transferencia> future = Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => FormularioTransferencia()),
+          );
+
+          future.then((transfer) {
+            if (transfer != null) {
+              setState(() {
+                widget._transfers.add(transfer);
+              });
+            }
+          });
+        },
       ),
     );
   }
